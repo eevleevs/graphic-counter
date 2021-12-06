@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "609759507371",
+    "firebase_url": "https://counter-19b93-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "counter-19b93",
+    "storage_bucket": "counter-19b93.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:609759507371:android:4220b9136492eba8c3d8ee",
+        "android_client_info": {
+          "package_name": "it.ivlivs.counter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "609759507371-soipd9og0ls9jgjdr5iu4itmruqi27oe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "it.ivlivs.counter",
+            "certificate_hash": "c8b9d9fc3b203c3474f367aa3a36d1ef6fca00f5"
+          }
+        },
+        {
+          "client_id": "609759507371-asnbmg60kgpnlmkjhqdoqmtv3g0stra7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFwEEEbIZpfgXU5Vusqn-kHn1TA5owHUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "609759507371-asnbmg60kgpnlmkjhqdoqmtv3g0stra7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
