@@ -6,9 +6,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:flutter_palette/flutter_palette.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -69,9 +71,11 @@ class SignInPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
         body: Center(
-            child: ElevatedButton(onPressed: signInWithGoogle, child: Text('Google login'))));
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      SignInButton(Buttons.Google, onPressed: signInWithGoogle),
+    ])));
   }
 }
 
