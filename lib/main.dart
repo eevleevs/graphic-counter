@@ -133,7 +133,7 @@ class _MainPageState extends State<MainPage> {
           final _today = today();
 
           // prepare graph data
-          double maxY = 3; // min value for Y axis maximum
+          double maxY = 4; // min value for Y axis maximum
           Map<String, List<FlSpot>> spots = {};
           for (final name in counters.keys) {
             final data = {};
@@ -214,25 +214,27 @@ class _MainPageState extends State<MainPage> {
                         child: Container(
                             margin: const EdgeInsets.fromLTRB(0, 20, 20, 15),
                             child: LineChart(LineChartData(
-                                backgroundColor: Theme.of(context).canvasColor,
-                                borderData: FlBorderData(show: false),
-                                titlesData: FlTitlesData(
-                                  rightTitles: SideTitles(showTitles: false),
-                                  topTitles: SideTitles(showTitles: false),
-                                ),
-                                axisTitleData: FlAxisTitleData(
-                                    bottomTitle:
-                                        AxisTitle(showTitle: true, titleText: period, margin: 15)),
-                                maxY: maxY.toDouble(),
-                                lineBarsData: counters.keys
-                                    .mapIndexed((index, name) => LineChartBarData(
-                                        isCurved: true,
-                                        preventCurveOverShooting: true,
-                                        colors: [
-                                          colors[index],
-                                        ],
-                                        spots: spots[name]))
-                                    .toList()))))),
+                              axisTitleData: FlAxisTitleData(
+                                  bottomTitle:
+                                      AxisTitle(showTitle: true, titleText: period, margin: 15)),
+                              backgroundColor: Theme.of(context).canvasColor,
+                              borderData: FlBorderData(show: false),
+                              lineTouchData: LineTouchData(
+                                  touchTooltipData: LineTouchTooltipData(
+                                      fitInsideHorizontally: true, fitInsideVertically: true)),
+                              lineBarsData: counters.keys
+                                  .mapIndexed((index, name) => LineChartBarData(
+                                      colors: [colors[index]],
+                                      isCurved: true,
+                                      preventCurveOverShooting: true,
+                                      spots: spots[name]))
+                                  .toList(),
+                              maxY: maxY.toDouble(),
+                              titlesData: FlTitlesData(
+                                rightTitles: SideTitles(showTitles: false),
+                                topTitles: SideTitles(showTitles: false),
+                              ),
+                            ))))),
                 Expanded(
                     flex: portrait ? 55 : 40,
                     child: Padding(
