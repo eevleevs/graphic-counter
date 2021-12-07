@@ -1,4 +1,6 @@
 import 'dart:collection';
+import 'dart:convert';
+import 'dart:io';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
@@ -8,7 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_palette/flutter_palette.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:path_provider/path_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +39,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   User? user;
+  var first = true;
 
   @override
   void initState() {
@@ -42,7 +47,8 @@ class _MyAppState extends State<MyApp> {
     FirebaseAuth.instance.authStateChanges().listen((User? _user) {
       setState(() {
         user = _user;
-        if (user == null) signInWithGoogle();
+        if (first && user == null) signInWithGoogle();
+        first = false;
       });
     });
   }
@@ -80,6 +86,7 @@ class _MainPageState extends State<MainPage> {
   final periods = {'days': 1, 'weeks': 7, 'months': 30, 'years': 365};
   final numberOfPeriods = 12;
 
+  late String exportPath;
   late DocumentReference<Map<String, dynamic>> userRef;
   late Stream<DocumentSnapshot<Map<String, dynamic>>> userStream;
 
@@ -94,6 +101,10 @@ class _MainPageState extends State<MainPage> {
             }
           });
     userStream = userRef.snapshots();
+
+    getExternalStorageDirectory().then((externalStorage) {
+      exportPath = '${externalStorage?.path}/data.json';
+    });
   }
 
   int today() {
@@ -146,17 +157,51 @@ class _MainPageState extends State<MainPage> {
                                 fontSize: 16)),
                         onPressed: () => userRef.update({'period': value}),
                       )))),
-              // drawer: SizedBox(
-              //     width: 200,
-              //     child: Drawer(
-              //         child: ListView(
-              //       children: [
-              //         ListTile(
-              //           title: const Text('Sign out'),
-              //           onTap: () => FirebaseAuth.instance.signOut(),
-              //         ),
-              //       ],
-              //     ))),
+              drawer: SizedBox(
+                  width: 200,
+                  child: Drawer(
+                      child: ListView(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.cloud_download),
+                        title: const Text('Export data'),
+                        onTap: () async {
+                          await File(exportPath).writeAsString(jsonEncode({'counters': counters}));
+                          Fluttertoast.showToast(
+                              msg: 'Data exported to $exportPath', toastLength: Toast.LENGTH_LONG);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.cloud_upload),
+                        title: const Text('Import data'),
+                        onTap: () async {
+                          final file = File(exportPath);
+                          if (!file.existsSync()) {
+                            Fluttertoast.showToast(msg: 'Export file not present');
+                            return;
+                          }
+                          if (await showOkCancelAlertDialog(
+                                context: context,
+                                message: 'overwrite data?',
+                              ) !=
+                              OkCancelResult.ok) return;
+                          userRef.update(jsonDecode(file.readAsStringSync()));
+                          Fluttertoast.showToast(msg: 'Data imported');
+                          Navigator.pop(context);
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.logout),
+                        title: const Text('Sign out'),
+                        onTap: () {
+                          FirebaseAuth.instance.signOut();
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ))),
               body: Flex(direction: portrait ? Axis.vertical : Axis.horizontal, children: [
                 Expanded(
                     flex: portrait ? 45 : 60,
