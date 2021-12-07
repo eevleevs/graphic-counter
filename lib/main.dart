@@ -1,9 +1,9 @@
 import 'dart:collection';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -13,7 +13,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  signInWithGoogle();
   runApp(const MyApp());
 }
 
@@ -35,7 +34,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool ready = false;
   User? user;
 
   @override
@@ -44,7 +42,7 @@ class _MyAppState extends State<MyApp> {
     FirebaseAuth.instance.authStateChanges().listen((User? _user) {
       setState(() {
         user = _user;
-        ready = true;
+        if (user == null) signInWithGoogle();
       });
     });
   }
@@ -55,11 +53,7 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.system,
-      home: !ready
-          ? const SizedBox.shrink()
-          : user == null
-              ? const SignInPage()
-              : const MainPage(),
+      home: user == null ? const SignInPage() : const MainPage(),
     );
   }
 }
@@ -83,39 +77,23 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final uid = FirebaseAuth.instance.currentUser?.uid;
   final periods = {'days': 1, 'weeks': 7, 'months': 30, 'years': 365};
+  final numberOfPeriods = 12;
 
-  late DatabaseReference countersRef;
-  late DatabaseReference periodRef;
-
-  var colors = const ColorPalette([]);
-  var counters = SplayTreeMap.of({});
-  var period = 'days';
-  bool ready = false;
-
-  Map<String, List<FlSpot>> spots = {};
-  double maxY = 0;
+  late DocumentReference<Map<String, dynamic>> userRef;
+  late Stream<DocumentSnapshot<Map<String, dynamic>>> userStream;
 
   @override
   void initState() {
     super.initState();
-    periodRef = FirebaseDatabase.instance.reference().child('/users/$uid/period')
-      ..onValue.listen((event) => setState(() {
-            period = event.snapshot.value ?? 'days';
-            setSpots();
-          }));
-    countersRef = FirebaseDatabase.instance.reference().child('/users/$uid/counters')
-      ..onValue.listen((event) => setState(() {
-            counters = SplayTreeMap.of(
-                {for (final entry in event.snapshot.value?.entries ?? {}) entry.key: entry.value});
-            if (counters.isNotEmpty) {
-              colors = ColorPalette.polyad(const HSLColor.fromAHSL(1, 0, 0.5, 0.5).toColor(),
-                  numberOfColors: counters.length);
-              setSpots();
-              ready = true;
+    userRef =
+        FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid)
+          ..get().then((snapshot) {
+            if (!snapshot.exists) {
+              userRef.set({'counters': {}, 'period': 'days'});
             }
-          }));
+          });
+    userStream = userRef.snapshots();
   }
 
   int today() {
@@ -123,82 +101,89 @@ class _MainPageState extends State<MainPage> {
     return DateTime(now.year, now.month, now.day).millisecondsSinceEpoch ~/ 100000;
   }
 
-  void setSpots() {
-    const periodNumber = 12;
-    final periodLength = periods[period];
-    final _today = today();
-    maxY = 3; // min value for Y axis maximum
-
-    for (final key in counters.keys) {
-      final data = {};
-      for (final entry in counters[key].entries) {
-        final difference = (double.parse(entry.key) - _today) ~/ (864 * periodLength!);
-        if (difference > -periodNumber) {
-          data[difference] = (data[difference] ?? 0) + entry.value;
-        }
-      }
-
-      spots[key] = [];
-      for (var i = 1 - periodNumber; i <= 0; i++) {
-        spots[key]?.add(FlSpot(i.toDouble(), (data[i] ?? 0).toDouble()));
-      }
-
-      maxY = [maxY, ...data.values].reduce((a, b) => a > b ? a : b).toDouble();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final portrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    return Scaffold(
-        appBar: AppBar(
-            actions: List<Widget>.of(periods.keys.map((value) => IconButton(
-                  tooltip: 'last 12 $value',
-                  icon: Text(value[0].toUpperCase(),
-                      style: TextStyle(
-                          color: Theme.of(context).appBarTheme.actionsIconTheme?.color,
-                          fontWeight: period == value ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 16)),
-                  onPressed: () => periodRef.set(value),
-                )))),
-        // drawer: SizedBox(
-        //     width: 200,
-        //     child: Drawer(
-        //         child: ListView(
-        //       children: [
-        //         ListTile(
-        //           title: const Text('Sign out'),
-        //           onTap: () => FirebaseAuth.instance.signOut(),
-        //         ),
-        //       ],
-        //     ))),
-        body: !ready
-            ? const SizedBox.shrink()
-            : Flex(direction: portrait ? Axis.vertical : Axis.horizontal, children: [
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: userStream,
+        builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+          if (!snapshot.hasData) return const SizedBox.shrink();
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final period = data['period'];
+          final counters = SplayTreeMap.of(data['counters']);
+          final colors = counters.isNotEmpty
+              ? ColorPalette.polyad(const HSLColor.fromAHSL(1, 0, 0.5, 0.5).toColor(),
+                  numberOfColors: counters.length)
+              : [];
+          final _today = today();
+
+          // prepare graph data
+          double maxY = 3; // min value for Y axis maximum
+          Map<String, List<FlSpot>> spots = {};
+          for (final name in counters.keys) {
+            final data = {};
+            for (final entry in counters[name].entries) {
+              final difference = (double.parse(entry.key) - _today) ~/ (864 * periods[period]!);
+              if (difference > -numberOfPeriods) {
+                data[difference] = (data[difference] ?? 0) + entry.value;
+              }
+            }
+            spots[name] = [];
+            for (var i = 1 - numberOfPeriods; i <= 0; i++) {
+              spots[name]?.add(FlSpot(i.toDouble(), (data[i] ?? 0).toDouble()));
+            }
+            maxY = [maxY, ...data.values].reduce((a, b) => a > b ? a : b).toDouble();
+          }
+
+          return Scaffold(
+              appBar: AppBar(
+                  actions: List<Widget>.of(periods.keys.map((value) => IconButton(
+                        tooltip: 'last 12 $value',
+                        icon: Text(value[0].toUpperCase(),
+                            style: TextStyle(
+                                color: Theme.of(context).appBarTheme.actionsIconTheme?.color,
+                                fontWeight: period == value ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 16)),
+                        onPressed: () => userRef.update({'period': value}),
+                      )))),
+              // drawer: SizedBox(
+              //     width: 200,
+              //     child: Drawer(
+              //         child: ListView(
+              //       children: [
+              //         ListTile(
+              //           title: const Text('Sign out'),
+              //           onTap: () => FirebaseAuth.instance.signOut(),
+              //         ),
+              //       ],
+              //     ))),
+              body: Flex(direction: portrait ? Axis.vertical : Axis.horizontal, children: [
                 Expanded(
                     flex: portrait ? 45 : 60,
                     child: Container(
-                        margin: const EdgeInsets.fromLTRB(0, 20, 20, 15),
-                        child: LineChart(LineChartData(
-                            backgroundColor: Theme.of(context).canvasColor,
-                            borderData: FlBorderData(show: false),
-                            titlesData: FlTitlesData(
-                              rightTitles: SideTitles(showTitles: false),
-                              topTitles: SideTitles(showTitles: false),
-                            ),
-                            axisTitleData: FlAxisTitleData(
-                                bottomTitle:
-                                    AxisTitle(showTitle: true, titleText: period, margin: 15)),
-                            maxY: maxY,
-                            lineBarsData: counters.keys
-                                .mapIndexed((index, key) => LineChartBarData(
-                                    isCurved: true,
-                                    preventCurveOverShooting: true,
-                                    colors: [
-                                      colors[index],
-                                    ],
-                                    spots: spots[key]))
-                                .toList())))),
+                        color: Theme.of(context).canvasColor,
+                        child: Container(
+                            margin: const EdgeInsets.fromLTRB(0, 20, 20, 15),
+                            child: LineChart(LineChartData(
+                                backgroundColor: Theme.of(context).canvasColor,
+                                borderData: FlBorderData(show: false),
+                                titlesData: FlTitlesData(
+                                  rightTitles: SideTitles(showTitles: false),
+                                  topTitles: SideTitles(showTitles: false),
+                                ),
+                                axisTitleData: FlAxisTitleData(
+                                    bottomTitle:
+                                        AxisTitle(showTitle: true, titleText: period, margin: 15)),
+                                maxY: maxY.toDouble(),
+                                lineBarsData: counters.keys
+                                    .mapIndexed((index, name) => LineChartBarData(
+                                        isCurved: true,
+                                        preventCurveOverShooting: true,
+                                        colors: [
+                                          colors[index],
+                                        ],
+                                        spots: spots[name]))
+                                    .toList()))))),
                 Expanded(
                     flex: portrait ? 55 : 40,
                     child: Padding(
@@ -212,7 +197,7 @@ class _MainPageState extends State<MainPage> {
                               return Align(
                                   alignment: Alignment.center,
                                   child: Padding(
-                                      padding: const EdgeInsets.only(top: 5),
+                                      padding: const EdgeInsets.only(bottom: 5),
                                       child: ElevatedButton(
                                           onPressed: () async {
                                             final name = (await showTextInputDialog(
@@ -225,19 +210,19 @@ class _MainPageState extends State<MainPage> {
                                                   context: context,
                                                   message: '$name is already used');
                                             }
-                                            countersRef
-                                                .child(name + '/' + today().toString())
-                                                .set(0);
+                                            userRef.update({
+                                              'counters.$name': {today().toString(): 0}
+                                            });
                                           },
                                           child: const Text('New counter'))));
                             }
                             final color = colors[index];
-                            final key = List.of(counters.keys)[index];
+                            final name = List.of(counters.keys)[index];
                             final _today = today().toString();
                             return ListTile(
                               tileColor: Theme.of(context).cardColor,
                               title: Text(
-                                key,
+                                name,
                                 style: TextStyle(color: color),
                               ),
                               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -245,20 +230,18 @@ class _MainPageState extends State<MainPage> {
                                     color: color,
                                     onPressed: () {
                                       final _today = today().toString();
-                                      countersRef.child('$key/$_today').set(
-                                          counters[key].containsKey(_today)
-                                              ? counters[key][_today] + 1
-                                              : 1);
+                                      userRef.update({
+                                        'counters.$name.$_today': (counters[name][_today] ?? 0) + 1
+                                      });
                                     },
                                     icon: const Icon(Icons.add)),
                                 IconButton(
                                     color: color,
                                     onPressed: () {
-                                      if (counters[key].containsKey(_today) &&
-                                          counters[key][_today] > 0) {
-                                        countersRef
-                                            .child('$key/$_today')
-                                            .set(counters[key][_today] - 1);
+                                      if (counters[name].containsKey(_today) &&
+                                          counters[name][_today] > 0) {
+                                        userRef.update(
+                                            {'counters.$name.$_today': counters[name][_today] - 1});
                                       }
                                     },
                                     icon: const Icon(Icons.remove)),
@@ -267,10 +250,10 @@ class _MainPageState extends State<MainPage> {
                                     onPressed: () async {
                                       if (await showOkCancelAlertDialog(
                                             context: context,
-                                            message: 'remove $key?',
+                                            message: 'remove $name?',
                                           ) ==
                                           OkCancelResult.ok) {
-                                        countersRef.child(key).remove();
+                                        userRef.update({'counters.$name': FieldValue.delete()});
                                       }
                                     },
                                     icon: const Icon(Icons.close)),
@@ -279,5 +262,6 @@ class _MainPageState extends State<MainPage> {
                           },
                         ))),
               ]));
+        });
   }
 }
