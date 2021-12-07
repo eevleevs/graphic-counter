@@ -127,7 +127,10 @@ class _MainPageState extends State<MainPage> {
           final period = data['period'];
           final counters = SplayTreeMap.of(data['counters']);
           final colors = counters.isNotEmpty
-              ? ColorPalette.polyad(const HSLColor.fromAHSL(1, 0, 0.5, 0.5).toColor(),
+              ? ColorPalette.polyad(
+                  Theme.of(context).brightness == Brightness.dark
+                      ? const HSLColor.fromAHSL(1, 0, 1, 0.7).toColor()
+                      : const HSLColor.fromAHSL(1, 0, 0.6, 0.5).toColor(),
                   numberOfColors: counters.length)
               : [];
           final _today = today();
