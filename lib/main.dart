@@ -159,15 +159,22 @@ class _MainPageState extends State<MainPage> {
 
           return Scaffold(
               appBar: AppBar(
-                  actions: List<Widget>.of(periods.keys.map((value) => IconButton(
+                  actions: List<Widget>.of(periods.keys.map((value) => Container(
+                      decoration: BoxDecoration(
+                        color: period == value
+                            ? Theme.of(context).highlightColor
+                            : Theme.of(context).appBarTheme.backgroundColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        splashColor: Colors.transparent,
                         tooltip: 'last 12 $value',
                         icon: Text(value[0].toUpperCase(),
                             style: TextStyle(
                                 color: Theme.of(context).appBarTheme.actionsIconTheme?.color,
-                                fontWeight: period == value ? FontWeight.bold : FontWeight.normal,
                                 fontSize: 16)),
                         onPressed: () => userRef.update({'period': value}),
-                      )))),
+                      ))))),
               drawer: SizedBox(
                   width: 200,
                   child: Drawer(
