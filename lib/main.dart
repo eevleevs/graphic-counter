@@ -41,7 +41,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   User? user;
-  var first = true;
+  var userUndefined = true;
 
   @override
   void initState() {
@@ -49,8 +49,8 @@ class _MyAppState extends State<MyApp> {
     FirebaseAuth.instance.authStateChanges().listen((User? _user) {
       setState(() {
         user = _user;
-        if (first && user == null) signInWithGoogle();
-        first = false;
+        if (userUndefined && user == null) signInWithGoogle();
+        userUndefined = false;
       });
     });
   }
@@ -61,7 +61,11 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.system,
-      home: user == null ? const SignInPage() : const MainPage(),
+      home: userUndefined
+          ? const SizedBox.shrink()
+          : user == null
+              ? const SignInPage()
+              : const MainPage(),
     );
   }
 }
