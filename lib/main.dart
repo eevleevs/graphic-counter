@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
@@ -105,28 +106,29 @@ class _MainPageState extends State<MainPage> {
 
   late String exportPath;
   late DocumentReference<Map<String, dynamic>> userRef;
+  late StreamSubscription<DocumentSnapshot<Map<String, dynamic>>> userStream;
 
   @override
   void initState() {
     super.initState();
     userRef =
-        FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid)
-          ..snapshots().listen((snapshot) {
-            if (!snapshot.exists) {
-              userRef.set({'counters': {}});
-              return;
-            }
-            final data = snapshot.data() as Map<String, dynamic>;
-            counters = SplayTreeMap.of(data['counters']);
-            colors = counters.isNotEmpty
-                ? ColorPalette.polyad(
-                    Theme.of(context).brightness == Brightness.dark
-                        ? const HSLColor.fromAHSL(1, 0, 1, 0.7).toColor()
-                        : const HSLColor.fromAHSL(1, 0, 0.6, 0.5).toColor(),
-                    numberOfColors: counters.length)
-                : [];
-            prepareChart();
-          });
+        FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
+    userStream = userRef.snapshots().listen((snapshot) {
+      if (!snapshot.exists) {
+        userRef.set({'counters': {}});
+        return;
+      }
+      final data = snapshot.data() as Map<String, dynamic>;
+      counters = SplayTreeMap.of(data['counters']);
+      colors = counters.isNotEmpty
+          ? ColorPalette.polyad(
+              Theme.of(context).brightness == Brightness.dark
+                  ? const HSLColor.fromAHSL(1, 0, 1, 0.7).toColor()
+                  : const HSLColor.fromAHSL(1, 0, 0.6, 0.5).toColor(),
+              numberOfColors: counters.length)
+          : [];
+      prepareChart();
+    });
 
     getExternalStorageDirectory().then((externalStorage) {
       exportPath = '${externalStorage?.path}/data.json';
@@ -135,6 +137,7 @@ class _MainPageState extends State<MainPage> {
 
   @override
   void dispose() {
+    userStream.cancel();
     super.dispose();
   }
 
