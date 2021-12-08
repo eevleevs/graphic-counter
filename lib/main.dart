@@ -12,7 +12,6 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:flutter_palette/flutter_palette.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
@@ -192,19 +191,24 @@ class _MainPageState extends State<MainPage> {
                   leading: const Icon(Icons.cloud_download),
                   title: const Text('Export data'),
                   onTap: () async {
-                    await File(exportPath).writeAsString(jsonEncode({'counters': counters}));
-                    Fluttertoast.showToast(
-                        msg: 'Data exported to $exportPath', toastLength: Toast.LENGTH_LONG);
                     Navigator.pop(context);
+                    await File(exportPath).writeAsString(jsonEncode({'counters': counters}));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Data exported to $exportPath'),
+                        duration: const Duration(seconds: 8)));
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.cloud_upload),
                   title: const Text('Import data'),
                   onTap: () async {
+                    Navigator.pop(context);
                     final file = File(exportPath);
                     if (!file.existsSync()) {
-                      Fluttertoast.showToast(msg: 'Export file not present');
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Export file not present'),
+                        elevation: 50,
+                      ));
                       return;
                     }
                     if (await showOkCancelAlertDialog(
@@ -213,8 +217,8 @@ class _MainPageState extends State<MainPage> {
                         ) !=
                         OkCancelResult.ok) return;
                     userRef.update(jsonDecode(file.readAsStringSync()));
-                    Fluttertoast.showToast(msg: 'Data imported');
-                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(content: Text('Data imported')));
                   },
                 ),
                 const Divider(),
