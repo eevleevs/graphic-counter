@@ -186,7 +186,7 @@ class _MainPageState extends State<MainPage> {
       name = (await showTextInputDialog(
           context: context,
           textFields: const [DialogTextField()],
-          message: alreadyUsed ? '$name is already used' : 'name the counter'))?[0];
+          message: alreadyUsed ? '$name is already used' : 'name the new counter'))?[0];
       if ([null, ''].contains(name)) return;
       if (!counters.containsKey(name)) break;
       alreadyUsed = true;
@@ -228,10 +228,11 @@ class _MainPageState extends State<MainPage> {
         appBar: AppBar(
             actions: List<Widget>.of(periods.keys.map((value) => Container(
                 decoration: BoxDecoration(
-                  color: period == value
-                      ? Theme.of(context).highlightColor
-                      : Theme.of(context).appBarTheme.backgroundColor,
                   shape: BoxShape.circle,
+                  border: Border.all(
+                      width: 1,
+                      style: period == value ? BorderStyle.solid : BorderStyle.none,
+                      color: Theme.of(context).hintColor),
                 ),
                 child: IconButton(
                   splashColor: Colors.transparent,
