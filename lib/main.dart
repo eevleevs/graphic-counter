@@ -105,7 +105,6 @@ class _MainPageState extends State<MainPage> {
 
   late String exportPath;
   late DocumentReference<Map<String, dynamic>> userRef;
-  bool fabVisible = true;
 
   @override
   void initState() {
@@ -279,9 +278,8 @@ class _MainPageState extends State<MainPage> {
                 ),
               ],
             ))),
-        floatingActionButton: Visibility(
-            visible: fabVisible,
-            child: FloatingActionButton(onPressed: newCounter, child: const Icon(Icons.add))),
+        floatingActionButton:
+            FloatingActionButton(onPressed: newCounter, child: const Icon(Icons.add)),
         body: Flex(direction: portrait ? Axis.vertical : Axis.horizontal, children: [
           Expanded(
               flex: portrait ? 45 : 60,
@@ -312,72 +310,54 @@ class _MainPageState extends State<MainPage> {
                       ))))),
           Expanded(
               flex: portrait ? 55 : 40,
-              child: Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        if (notification.depth == 0) {
-                          if (fabVisible) {
-                            if (notification is OverscrollNotification &&
-                                notification.overscroll > 0) {
-                              setState(() => fabVisible = false);
+              child: ListView.separated(
+                padding: const EdgeInsets.only(top: 10, bottom: 80),
+                separatorBuilder: (_, __) =>
+                    Divider(height: 5, color: Theme.of(context).canvasColor),
+                itemCount: counters.keys.length,
+                itemBuilder: (context, index) {
+                  final color = colors[index];
+                  final name = List.of(counters.keys)[index];
+                  final _today = today().toString();
+                  return ListTile(
+                    tileColor: Theme.of(context).cardColor,
+                    title: Text(
+                      name,
+                      style: TextStyle(color: color),
+                    ),
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      IconButton(
+                          color: color,
+                          onPressed: () {
+                            final _today = today().toString();
+                            userRef.update(
+                                {'counters.$name.$_today': (counters[name][_today] ?? 0) + 1});
+                          },
+                          icon: const Icon(Icons.add)),
+                      IconButton(
+                          color: color,
+                          onPressed: () {
+                            if (counters[name].containsKey(_today) && counters[name][_today] > 0) {
+                              userRef
+                                  .update({'counters.$name.$_today': counters[name][_today] - 1});
                             }
-                          } else if (notification is UserScrollNotification &&
-                              notification.direction == ScrollDirection.forward) {
-                            setState(() => fabVisible = true);
-                          }
-                        }
-                        return false;
-                      },
-                      child: ListView.separated(
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 5, color: Theme.of(context).canvasColor),
-                        itemCount: counters.keys.length,
-                        itemBuilder: (context, index) {
-                          final color = colors[index];
-                          final name = List.of(counters.keys)[index];
-                          final _today = today().toString();
-                          return ListTile(
-                            tileColor: Theme.of(context).cardColor,
-                            title: Text(
-                              name,
-                              style: TextStyle(color: color),
-                            ),
-                            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                              IconButton(
-                                  color: color,
-                                  onPressed: () {
-                                    final _today = today().toString();
-                                    userRef.update({
-                                      'counters.$name.$_today': (counters[name][_today] ?? 0) + 1
-                                    });
-                                  },
-                                  icon: const Icon(Icons.add)),
-                              IconButton(
-                                  color: color,
-                                  onPressed: () {
-                                    if (counters[name].containsKey(_today) &&
-                                        counters[name][_today] > 0) {
-                                      userRef.update(
-                                          {'counters.$name.$_today': counters[name][_today] - 1});
-                                    }
-                                  },
-                                  icon: const Icon(Icons.remove)),
-                              IconButton(
-                                  color: color,
-                                  onPressed: () async {
-                                    if (await showModalActionSheet(context: context, actions: [
-                                          SheetAction(key: 'remove', label: 'Remove $name')
-                                        ]) ==
-                                        'remove') {
-                                      userRef.update({'counters.$name': FieldValue.delete()});
-                                    }
-                                  },
-                                  icon: const Icon(Icons.close)),
-                            ]),
-                          );
-                        },
-                      )))),
+                          },
+                          icon: const Icon(Icons.remove)),
+                      IconButton(
+                          color: color,
+                          onPressed: () async {
+                            if (await showModalActionSheet(
+                                    context: context,
+                                    actions: [SheetAction(key: 'remove', label: 'Remove $name')]) ==
+                                'remove') {
+                              userRef.update({'counters.$name': FieldValue.delete()});
+                            }
+                          },
+                          icon: const Icon(Icons.close)),
+                    ]),
+                  );
+                },
+              )),
         ]));
   }
 }
