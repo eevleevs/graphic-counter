@@ -275,21 +275,25 @@ class _MainPageState extends State<MainPage> {
                             child: Padding(
                                 padding: const EdgeInsets.only(bottom: 5),
                                 child: ElevatedButton(
+                                    child: const Text('New counter'),
                                     onPressed: () async {
-                                      final name = (await showTextInputDialog(
-                                          context: context,
-                                          textFields: const [DialogTextField()],
-                                          message: 'name the counter'))?[0];
-                                      if (name == null || name == '') return;
-                                      if (counters.containsKey(name)) {
-                                        showOkAlertDialog(
-                                            context: context, message: '$name is already used');
+                                      var alreadyUsed = false;
+                                      String? name;
+                                      while (true) {
+                                        name = (await showTextInputDialog(
+                                            context: context,
+                                            textFields: const [DialogTextField()],
+                                            message: alreadyUsed
+                                                ? '$name is already used'
+                                                : 'name the counter'))?[0];
+                                        if ([null, ''].contains(name)) return;
+                                        if (!counters.containsKey(name)) break;
+                                        alreadyUsed = true;
                                       }
                                       userRef.update({
                                         'counters.$name': {today().toString(): 0}
                                       });
-                                    },
-                                    child: const Text('New counter'))));
+                                    })));
                       }
                       final color = colors[index];
                       final name = List.of(counters.keys)[index];
