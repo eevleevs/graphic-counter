@@ -132,6 +132,47 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  void importData() async {
+    Navigator.pop(context);
+    final file = File(exportPath);
+    if (!file.existsSync()) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Export file not present'),
+      ));
+      return;
+    }
+    Map<String, dynamic> importedData = {};
+    try {
+      importedData = jsonDecode(file.readAsStringSync());
+    } on TypeError catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Invalid input data'),
+      ));
+      return;
+    }
+    final result = await showModalActionSheet(
+      context: context,
+      actions: [
+        const SheetAction(key: 'overwrite', label: 'Overwrite current data'),
+        const SheetAction(key: 'merge', label: 'Merge with current data'),
+      ],
+    );
+    if (!['overwrite', 'merge'].contains(result)) return;
+    Map<String, dynamic> data = {};
+    if (result == 'overwrite') {
+      data = {'counters': importedData['counters'] ?? {}};
+    } else {
+      data = {'counters': Map.from(counters)};
+      for (final counter in (importedData['counters'] ?? {}).entries) {
+        for (final entry in counter.value.entries) {
+          data['counters'].putIfAbsent(counter.key, () => {})[entry.key] = entry.value;
+        }
+      }
+    }
+    userRef.update(data);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data imported')));
+  }
+
   void prepareChart() => setState(() {
         maxY = 3; // min value for Y axis maximum
         spots = {};
@@ -201,25 +242,7 @@ class _MainPageState extends State<MainPage> {
                 ListTile(
                   leading: const Icon(Icons.cloud_upload),
                   title: const Text('Import data'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final file = File(exportPath);
-                    if (!file.existsSync()) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Export file not present'),
-                        elevation: 50,
-                      ));
-                      return;
-                    }
-                    if (await showOkCancelAlertDialog(
-                          context: context,
-                          message: 'overwrite data?',
-                        ) !=
-                        OkCancelResult.ok) return;
-                    userRef.update(jsonDecode(file.readAsStringSync()));
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text('Data imported')));
-                  },
+                  onTap: importData,
                 ),
                 const Divider(),
                 ListTile(
@@ -326,11 +349,10 @@ class _MainPageState extends State<MainPage> {
                           IconButton(
                               color: color,
                               onPressed: () async {
-                                if (await showOkCancelAlertDialog(
-                                      context: context,
-                                      message: 'remove $name?',
-                                    ) ==
-                                    OkCancelResult.ok) {
+                                if (await showModalActionSheet(context: context, actions: [
+                                      SheetAction(key: 'remove', label: 'Remove $name')
+                                    ]) ==
+                                    'remove') {
                                   userRef.update({'counters.$name': FieldValue.delete()});
                                 }
                               },
