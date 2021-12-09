@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:io';
+// import 'export_native.dart' if (kIsWeb) 'export_web.dart';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
+import 'package:download/download.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
@@ -99,12 +104,12 @@ class _MainPageState extends State<MainPage> {
 
   var colors = [];
   var counters = SplayTreeMap();
+  var exportPath = '';
   double maxY = 0;
   var period = GetStorage().read('period') ?? 'days';
   Map<String, List<FlSpot>> spots = {};
   var _today = 0;
 
-  late String exportPath;
   late DocumentReference<Map<String, dynamic>> userRef;
   late StreamSubscription<DocumentSnapshot<Map<String, dynamic>>> userStream;
 
@@ -130,9 +135,11 @@ class _MainPageState extends State<MainPage> {
       prepareChart();
     });
 
-    getExternalStorageDirectory().then((externalStorage) {
-      exportPath = '${externalStorage?.path}/data.json';
-    });
+    if (!kIsWeb) {
+      getExternalStorageDirectory().then((externalStorage) {
+        exportPath = '${externalStorage?.path}/data.json';
+      });
+    }
   }
 
   @override
@@ -143,16 +150,24 @@ class _MainPageState extends State<MainPage> {
 
   void importData() async {
     Navigator.pop(context);
-    final file = File(exportPath);
-    if (!file.existsSync()) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Export file not present'),
-      ));
-      return;
+    var json = '';
+    if (kIsWeb) {
+      final result = await FilePicker.platform.pickFiles();
+      if (result == null) return;
+      json = String.fromCharCodes(result.files.single.bytes ?? []);
+    } else {
+      final file = File(exportPath);
+      if (!file.existsSync()) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Export file not present'),
+        ));
+        return;
+      }
+      json = file.readAsStringSync();
     }
     Map<String, dynamic> importedData = {};
     try {
-      importedData = jsonDecode(file.readAsStringSync());
+      importedData = jsonDecode(json);
     } on TypeError catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Invalid input data'),
@@ -260,10 +275,15 @@ class _MainPageState extends State<MainPage> {
                   title: const Text('Export data'),
                   onTap: () async {
                     Navigator.pop(context);
-                    await File(exportPath).writeAsString(jsonEncode({'counters': counters}));
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('Data exported to $exportPath'),
-                        duration: const Duration(seconds: 8)));
+                    final json = jsonEncode({'counters': counters});
+                    if (kIsWeb) {
+                      download(Stream.fromIterable(json.codeUnits), 'data.json');
+                    } else {
+                      File(exportPath).writeAsString(json);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Data exported to $exportPath'),
+                          duration: const Duration(seconds: 8)));
+                    }
                   },
                 ),
                 ListTile(
