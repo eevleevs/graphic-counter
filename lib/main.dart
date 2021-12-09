@@ -61,8 +61,8 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
+      theme: ThemeData.light().copyWith(brightness: Brightness.light, primaryColor: Colors.teal),
+      darkTheme: ThemeData.dark().copyWith(brightness: Brightness.dark, primaryColor: Colors.teal),
       themeMode: ThemeMode.system,
       home: userUndefined
           ? const SizedBox.shrink()
@@ -124,7 +124,7 @@ class _MainPageState extends State<MainPage> {
           ? ColorPalette.polyad(
               Theme.of(context).brightness == Brightness.dark
                   ? const HSLColor.fromAHSL(1, 0, 1, 0.7).toColor()
-                  : const HSLColor.fromAHSL(1, 0, 0.6, 0.5).toColor(),
+                  : const HSLColor.fromAHSL(1, 0, 0.7, 0.5).toColor(),
               numberOfColors: counters.length)
           : [];
       prepareChart();
