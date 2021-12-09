@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
 import 'dart:io';
-// import 'export_native.dart' if (kIsWeb) 'export_web.dart';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
@@ -327,10 +325,18 @@ class _MainPageState extends State<MainPage> {
                                 spots: spots[name]))
                             .toList(),
                         maxY: maxY,
-                        titlesData: FlTitlesData(
-                          rightTitles: SideTitles(showTitles: false),
-                          topTitles: SideTitles(showTitles: false),
-                        ),
+                        titlesData: maxY < 15
+                            ? FlTitlesData(
+                                bottomTitles: SideTitles(showTitles: true, interval: 1),
+                                leftTitles:
+                                    SideTitles(showTitles: true, interval: maxY < 8 ? 1 : 2),
+                                rightTitles: SideTitles(showTitles: false),
+                                topTitles: SideTitles(showTitles: false),
+                              )
+                            : FlTitlesData(
+                                rightTitles: SideTitles(showTitles: false),
+                                topTitles: SideTitles(showTitles: false),
+                              ),
                       ))))),
           Expanded(
               flex: portrait ? 55 : 40,
