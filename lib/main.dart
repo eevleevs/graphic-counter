@@ -47,7 +47,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   User? user;
-  var userUndefined = true;
+  var initialised = false;
 
   @override
   void initState() {
@@ -55,8 +55,8 @@ class _MyAppState extends State<MyApp> {
     FirebaseAuth.instance.authStateChanges().listen((User? _user) {
       setState(() {
         user = _user;
-        if (userUndefined && user == null) signInWithGoogle();
-        userUndefined = false;
+        if (!initialised && user == null) signInWithGoogle();
+        initialised = true;
       });
     });
   }
@@ -67,8 +67,8 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData.light().copyWith(brightness: Brightness.light, primaryColor: Colors.teal),
       darkTheme: ThemeData.dark().copyWith(brightness: Brightness.dark, primaryColor: Colors.teal),
       themeMode: ThemeMode.system,
-      home: userUndefined
-          ? const SizedBox.shrink()
+      home: !initialised
+          ? Container()
           : user == null
               ? const SignInPage()
               : const MainPage(),
@@ -302,92 +302,97 @@ class _MainPageState extends State<MainPage> {
             ))),
         floatingActionButton:
             FloatingActionButton(onPressed: newCounter, child: const Icon(Icons.add)),
-        body: Flex(direction: portrait ? Axis.vertical : Axis.horizontal, children: [
-          Expanded(
-              flex: portrait ? 45 : 60,
-              child: Container(
-                  color: Theme.of(context).canvasColor,
-                  child: Container(
-                      margin: const EdgeInsets.fromLTRB(0, 20, 20, 15),
-                      child: LineChart(LineChartData(
-                        axisTitleData: FlAxisTitleData(
-                            bottomTitle: AxisTitle(showTitle: true, titleText: period, margin: 15)),
-                        backgroundColor: Theme.of(context).canvasColor,
-                        borderData: FlBorderData(show: false),
-                        lineTouchData: LineTouchData(
-                            touchTooltipData: LineTouchTooltipData(
-                                fitInsideHorizontally: true, fitInsideVertically: true)),
-                        lineBarsData: counters.keys
-                            .mapIndexed((index, name) => LineChartBarData(
-                                colors: [colors[index]],
-                                isCurved: true,
-                                preventCurveOverShooting: true,
-                                spots: spots[name]))
-                            .toList(),
-                        maxY: maxY,
-                        titlesData: maxY < 15
-                            ? FlTitlesData(
-                                bottomTitles: SideTitles(showTitles: true, interval: 1),
-                                leftTitles:
-                                    SideTitles(showTitles: true, interval: maxY < 8 ? 1 : 2),
-                                rightTitles: SideTitles(showTitles: false),
-                                topTitles: SideTitles(showTitles: false),
-                              )
-                            : FlTitlesData(
-                                rightTitles: SideTitles(showTitles: false),
-                                topTitles: SideTitles(showTitles: false),
-                              ),
-                      ))))),
-          Expanded(
-              flex: portrait ? 55 : 40,
-              child: ListView.separated(
-                padding: const EdgeInsets.only(top: 10, bottom: 80),
-                separatorBuilder: (_, __) =>
-                    Divider(height: 5, color: Theme.of(context).canvasColor),
-                itemCount: counters.keys.length,
-                itemBuilder: (context, index) {
-                  final color = colors[index];
-                  final name = List.of(counters.keys)[index];
-                  final _today = today().toString();
-                  return ListTile(
-                    tileColor: Theme.of(context).cardColor,
-                    title: Text(
-                      name,
-                      style: TextStyle(color: color),
-                    ),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      IconButton(
-                          color: color,
-                          onPressed: () {
-                            final _today = today().toString();
-                            userRef.update(
-                                {'counters.$name.$_today': (counters[name][_today] ?? 0) + 1});
-                          },
-                          icon: const Icon(Icons.add)),
-                      IconButton(
-                          color: color,
-                          onPressed: () {
-                            if (counters[name].containsKey(_today) && counters[name][_today] > 0) {
-                              userRef
-                                  .update({'counters.$name.$_today': counters[name][_today] - 1});
-                            }
-                          },
-                          icon: const Icon(Icons.remove)),
-                      IconButton(
-                          color: color,
-                          onPressed: () async {
-                            if (await showModalActionSheet(
-                                    context: context,
-                                    actions: [SheetAction(key: 'remove', label: 'Remove $name')]) ==
-                                'remove') {
-                              userRef.update({'counters.$name': FieldValue.delete()});
-                            }
-                          },
-                          icon: const Icon(Icons.close)),
-                    ]),
-                  );
-                },
-              )),
-        ]));
+        body: counters.isEmpty
+            ? const Center(child: Text('Add the first counter with the + button'))
+            : Flex(direction: portrait ? Axis.vertical : Axis.horizontal, children: [
+                Expanded(
+                    flex: portrait ? 45 : 60,
+                    child: Container(
+                        color: Theme.of(context).canvasColor,
+                        child: Container(
+                            margin: const EdgeInsets.fromLTRB(0, 20, 20, 15),
+                            child: LineChart(LineChartData(
+                              axisTitleData: FlAxisTitleData(
+                                  bottomTitle:
+                                      AxisTitle(showTitle: true, titleText: period, margin: 15)),
+                              backgroundColor: Theme.of(context).canvasColor,
+                              borderData: FlBorderData(show: false),
+                              lineTouchData: LineTouchData(
+                                  touchTooltipData: LineTouchTooltipData(
+                                      fitInsideHorizontally: true, fitInsideVertically: true)),
+                              lineBarsData: counters.keys
+                                  .mapIndexed((index, name) => LineChartBarData(
+                                      colors: [colors[index]],
+                                      isCurved: true,
+                                      preventCurveOverShooting: true,
+                                      spots: spots[name]))
+                                  .toList(),
+                              maxY: maxY,
+                              titlesData: maxY < 15
+                                  ? FlTitlesData(
+                                      bottomTitles: SideTitles(showTitles: true, interval: 1),
+                                      leftTitles:
+                                          SideTitles(showTitles: true, interval: maxY < 8 ? 1 : 2),
+                                      rightTitles: SideTitles(showTitles: false),
+                                      topTitles: SideTitles(showTitles: false),
+                                    )
+                                  : FlTitlesData(
+                                      rightTitles: SideTitles(showTitles: false),
+                                      topTitles: SideTitles(showTitles: false),
+                                    ),
+                            ))))),
+                Expanded(
+                    flex: portrait ? 55 : 40,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.only(top: 10, bottom: 80),
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 5, color: Theme.of(context).canvasColor),
+                      itemCount: counters.keys.length,
+                      itemBuilder: (context, index) {
+                        final color = colors[index];
+                        final name = List.of(counters.keys)[index];
+                        final _today = today().toString();
+                        return ListTile(
+                          tileColor: Theme.of(context).cardColor,
+                          title: Text(
+                            name,
+                            style: TextStyle(color: color),
+                          ),
+                          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                            IconButton(
+                                color: color,
+                                onPressed: () {
+                                  final _today = today().toString();
+                                  userRef.update({
+                                    'counters.$name.$_today': (counters[name][_today] ?? 0) + 1
+                                  });
+                                },
+                                icon: const Icon(Icons.add)),
+                            IconButton(
+                                color: color,
+                                onPressed: () {
+                                  if (counters[name].containsKey(_today) &&
+                                      counters[name][_today] > 0) {
+                                    userRef.update(
+                                        {'counters.$name.$_today': counters[name][_today] - 1});
+                                  }
+                                },
+                                icon: const Icon(Icons.remove)),
+                            IconButton(
+                                color: color,
+                                onPressed: () async {
+                                  if (await showModalActionSheet(context: context, actions: [
+                                        SheetAction(key: 'remove', label: 'Remove $name')
+                                      ]) ==
+                                      'remove') {
+                                    userRef.update({'counters.$name': FieldValue.delete()});
+                                  }
+                                },
+                                icon: const Icon(Icons.close)),
+                          ]),
+                        );
+                      },
+                    )),
+              ]));
   }
 }
