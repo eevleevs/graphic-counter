@@ -314,7 +314,7 @@ class _MainPageState extends State<MainPage> {
                             child: LineChart(LineChartData(
                               axisTitleData: FlAxisTitleData(
                                   bottomTitle:
-                                      AxisTitle(showTitle: true, titleText: period, margin: 15)),
+                                      AxisTitle(showTitle: true, titleText: period, margin: 0)),
                               backgroundColor: Theme.of(context).canvasColor,
                               borderData: FlBorderData(show: false),
                               lineTouchData: LineTouchData(
@@ -328,18 +328,11 @@ class _MainPageState extends State<MainPage> {
                                       spots: spots[name]))
                                   .toList(),
                               maxY: maxY,
-                              titlesData: maxY < 15
-                                  ? FlTitlesData(
-                                      bottomTitles: SideTitles(showTitles: true, interval: 1),
-                                      leftTitles:
-                                          SideTitles(showTitles: true, interval: maxY < 8 ? 1 : 2),
-                                      rightTitles: SideTitles(showTitles: false),
-                                      topTitles: SideTitles(showTitles: false),
-                                    )
-                                  : FlTitlesData(
-                                      rightTitles: SideTitles(showTitles: false),
-                                      topTitles: SideTitles(showTitles: false),
-                                    ),
+                              titlesData: FlTitlesData(
+                                bottomTitles: SideTitles(showTitles: true, interval: 1),
+                                rightTitles: SideTitles(showTitles: false),
+                                topTitles: SideTitles(showTitles: false),
+                              ),
                             ))))),
                 Expanded(
                     flex: portrait ? 55 : 40,
