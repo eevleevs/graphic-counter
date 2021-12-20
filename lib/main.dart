@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
@@ -212,25 +213,27 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-  void prepareChart() => setState(() {
-        maxY = 3; // min value for Y axis maximum
-        spots = {};
-        _today = today();
-        for (final name in counters.keys) {
-          final counter = {};
-          for (final entry in counters[name].entries) {
-            final difference = (double.parse(entry.key) - _today) ~/ (864 * periods[period]!);
-            if (difference > -numberOfPeriods) {
-              counter[difference] = (counter[difference] ?? 0) + entry.value;
-            }
+  void prepareChart() {
+    setState(() {
+      maxY = 3; // min value for Y axis maximum
+      spots = {};
+      _today = today();
+      for (final name in counters.keys) {
+        final counter = {};
+        for (final entry in counters[name].entries) {
+          final difference = (double.parse(entry.key) - _today) ~/ (864 * periods[period]!);
+          if (difference > -numberOfPeriods) {
+            counter[difference] = (counter[difference] ?? 0) + entry.value;
           }
-          spots[name] = [];
-          for (var i = 1 - numberOfPeriods; i <= 0; i++) {
-            spots[name]?.add(FlSpot(i.toDouble(), (counter[i] ?? 0).toDouble()));
-          }
-          maxY = [maxY, ...counter.values].reduce((a, b) => a > b ? a : b).toDouble();
         }
-      });
+        spots[name] = [];
+        for (var i = 1 - numberOfPeriods; i <= 0; i++) {
+          spots[name]?.add(FlSpot(i.toDouble(), (counter[i] ?? 0).toDouble()));
+        }
+        maxY = [maxY, ...counter.values].reduce((a, b) => a > b ? a : b).toDouble();
+      }
+    });
+  }
 
   int today() {
     final now = DateTime.now();
