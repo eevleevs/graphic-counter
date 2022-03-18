@@ -13,9 +13,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/painting.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:flutter_palette/flutter_palette.dart';
 import 'package:get_storage/get_storage.dart';
@@ -149,6 +146,8 @@ class _MainPageState extends State<MainPage> {
     super.dispose();
   }
 
+  String today() => DateTime.now().toString().substring(0, 10).replaceAll('-', '');
+
   void importData() async {
     Navigator.pop(context);
     var json = '';
@@ -211,7 +210,7 @@ class _MainPageState extends State<MainPage> {
       alreadyUsed = true;
     }
     userRef.update({
-      'counters.$name': {today().toString(): 0}
+      'counters.$name': {today(): 0}
     });
   }
 
@@ -219,11 +218,12 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       maxY = 3; // min value for Y axis maximum
       spots = {};
-      _today = today();
+      final _today = DateTime.parse(today());
       for (final name in counters.keys) {
         final counter = {};
         for (final entry in counters[name].entries) {
-          final difference = (double.parse(entry.key) - _today) ~/ (864 * periods[period]!);
+          final difference =
+              DateTime.parse(entry.key).difference(_today).inDays ~/ periods[period]!;
           if (difference > -numberOfPeriods) {
             counter[difference] = (counter[difference] ?? 0) + entry.value;
           }
@@ -235,11 +235,6 @@ class _MainPageState extends State<MainPage> {
         maxY = [maxY, ...counter.values].reduce((a, b) => a > b ? a : b).toDouble();
       }
     });
-  }
-
-  int today() {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day).millisecondsSinceEpoch ~/ 100000;
   }
 
   @override
@@ -349,7 +344,6 @@ class _MainPageState extends State<MainPage> {
                       itemBuilder: (context, index) {
                         final color = colors[index];
                         final name = List.of(counters.keys)[index];
-                        final _today = today().toString();
                         return ListTile(
                           tileColor: Theme.of(context).cardColor,
                           title: Text(
@@ -360,7 +354,7 @@ class _MainPageState extends State<MainPage> {
                             IconButton(
                                 color: color,
                                 onPressed: () {
-                                  final _today = today().toString();
+                                  final _today = today();
                                   userRef.update({
                                     'counters.$name.$_today': (counters[name][_today] ?? 0) + 1
                                   });
@@ -369,6 +363,7 @@ class _MainPageState extends State<MainPage> {
                             IconButton(
                                 color: color,
                                 onPressed: () {
+                                  final _today = today();
                                   if (counters[name].containsKey(_today) &&
                                       counters[name][_today] > 0) {
                                     userRef.update(
