@@ -106,7 +106,6 @@ class _MainPageState extends State<MainPage> {
   double maxY = 0;
   var period = GetStorage().read('period') ?? 'days';
   Map<String, List<FlSpot>> spots = {};
-  var _today = 0;
 
   late DocumentReference<Map<String, dynamic>> userRef;
   late StreamSubscription<DocumentSnapshot<Map<String, dynamic>>> userStream;
