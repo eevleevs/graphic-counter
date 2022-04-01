@@ -363,10 +363,12 @@ class _MainPageState extends State<MainPage> {
                                 color: color,
                                 onPressed: () {
                                   final _today = today();
-                                  if (counters[name].containsKey(_today) &&
-                                      counters[name][_today] > 0) {
-                                    userRef.update(
-                                        {'counters.$name.$_today': counters[name][_today] - 1});
+                                  if (counters[name].containsKey(_today)) {
+                                    userRef.update({
+                                      'counters.$name.$_today': counters[name][_today] > 1
+                                          ? counters[name][_today] - 1
+                                          : FieldValue.delete()
+                                    });
                                   }
                                 },
                                 icon: const Icon(Icons.remove)),
