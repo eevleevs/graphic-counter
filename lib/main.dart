@@ -145,7 +145,12 @@ class _MainPageState extends State<MainPage> {
     super.dispose();
   }
 
-  String today() => DateTime.now().toString().substring(0, 10).replaceAll('-', '');
+  void decreaseCounter(name, day) {
+    if (!counters[name].containsKey(day)) return;
+    userRef.update({
+      'counters.$name.$day': counters[name][day] > 1 ? counters[name][day] - 1 : FieldValue.delete()
+    });
+  }
 
   void importData() async {
     Navigator.pop(context);
@@ -196,6 +201,9 @@ class _MainPageState extends State<MainPage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data imported')));
   }
 
+  void increaseCounter(name, day) =>
+      userRef.update({'counters.$name.$day': (counters[name][day] ?? 0) + 1});
+
   void newCounter() async {
     var alreadyUsed = false;
     String? name;
@@ -235,6 +243,9 @@ class _MainPageState extends State<MainPage> {
       }
     });
   }
+
+  String today({int offset = 0}) =>
+      DateTime.now().add(Duration(days: offset)).toString().substring(0, 10).replaceAll('-', '');
 
   @override
   Widget build(BuildContext context) {
@@ -350,31 +361,20 @@ class _MainPageState extends State<MainPage> {
                             style: TextStyle(color: color),
                           ),
                           trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                            IconButton(
-                                color: color,
-                                onPressed: () {
-                                  final _today = today();
-                                  userRef.update({
-                                    'counters.$name.$_today': (counters[name][_today] ?? 0) + 1
-                                  });
-                                },
-                                icon: const Icon(Icons.add)),
-                            IconButton(
-                                color: color,
-                                onPressed: () {
-                                  final _today = today();
-                                  if (counters[name].containsKey(_today)) {
-                                    userRef.update({
-                                      'counters.$name.$_today': counters[name][_today] > 1
-                                          ? counters[name][_today] - 1
-                                          : FieldValue.delete()
-                                    });
-                                  }
-                                },
-                                icon: const Icon(Icons.remove)),
-                            IconButton(
-                                color: color,
-                                onPressed: () async {
+                            InkWell(
+                                onTap: () => increaseCounter(name, today()),
+                                onLongPress: () => increaseCounter(name, today(offset: -1)),
+                                child: Ink(
+                                    height: 40, width: 40, child: Icon(Icons.add, color: color))),
+                            InkWell(
+                                onTap: () => decreaseCounter(name, today()),
+                                onLongPress: () => decreaseCounter(name, today(offset: -1)),
+                                child: Ink(
+                                    height: 40,
+                                    width: 40,
+                                    child: Icon(Icons.remove, color: color))),
+                            InkWell(
+                                onTap: () async {
                                   if (await showModalActionSheet(context: context, actions: [
                                         SheetAction(key: 'remove', label: 'Remove $name')
                                       ]) ==
@@ -382,7 +382,8 @@ class _MainPageState extends State<MainPage> {
                                     userRef.update({'counters.$name': FieldValue.delete()});
                                   }
                                 },
-                                icon: const Icon(Icons.close)),
+                                child: Ink(
+                                    height: 40, width: 40, child: Icon(Icons.close, color: color))),
                           ]),
                         );
                       },
