@@ -97,7 +97,7 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final periods = {'days': 1, 'weeks': 7, 'months': 30, 'years': 365};
+  final periods = {'days': 1, 'weeks': 7, 'months': 30, 'seasons': 90, 'years': 365};
   final numberOfPeriods = 12;
 
   var colors = [];
