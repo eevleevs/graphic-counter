@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:collection/collection.dart';
+import 'package:color_palette_plus/color_palette_plus.dart';
 import 'package:download/download.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,7 +14,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
-import 'package:flutter_palette/flutter_palette.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
@@ -30,7 +29,8 @@ Future<void> main() async {
 
 Future<UserCredential> signInWithGoogle() async {
   final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-  final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
+  final GoogleSignInAuthentication? googleAuth =
+      await googleUser?.authentication;
   final credential = GoogleAuthProvider.credential(
     accessToken: googleAuth?.accessToken,
     idToken: googleAuth?.idToken,
@@ -52,9 +52,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    FirebaseAuth.instance.authStateChanges().listen((User? _user) {
+    FirebaseAuth.instance.authStateChanges().listen((User? user_) {
       setState(() {
-        user = _user;
+        user = user_;
         if (!initialised && user == null) signInWithGoogle();
         initialised = true;
       });
@@ -64,8 +64,10 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData.light().copyWith(brightness: Brightness.light, primaryColor: Colors.teal),
-      darkTheme: ThemeData.dark().copyWith(brightness: Brightness.dark, primaryColor: Colors.teal),
+      theme: ThemeData.light()
+          .copyWith(brightness: Brightness.light, primaryColor: Colors.teal),
+      darkTheme: ThemeData.dark()
+          .copyWith(brightness: Brightness.dark, primaryColor: Colors.teal),
       themeMode: ThemeMode.system,
       home: !initialised
           ? Container()
@@ -83,7 +85,8 @@ class SignInPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Center(
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       SignInButton(Buttons.Google, onPressed: signInWithGoogle),
     ])));
   }
@@ -93,11 +96,17 @@ class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
 
   @override
-  _MainPageState createState() => _MainPageState();
+  MainPageState createState() => MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
-  final periods = {'days': 1, 'weeks': 7, 'months': 30, 'seasons': 90, 'years': 365};
+class MainPageState extends State<MainPage> {
+  final periods = {
+    'days': 1,
+    'weeks': 7,
+    'months': 30,
+    'seasons': 90,
+    'years': 365
+  };
   final numberOfPeriods = 12;
 
   var colors = [];
@@ -113,8 +122,9 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-    userRef =
-        FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
+    userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid);
     userStream = userRef.snapshots().listen((snapshot) {
       if (!snapshot.exists) {
         userRef.set({'counters': {}});
@@ -123,11 +133,11 @@ class _MainPageState extends State<MainPage> {
       final data = snapshot.data() as Map<String, dynamic>;
       counters = SplayTreeMap.of(data['counters']);
       colors = counters.isNotEmpty
-          ? ColorPalette.polyad(
+          ? ColorPalettes.analogous(
               Theme.of(context).brightness == Brightness.dark
                   ? const HSLColor.fromAHSL(1, 0, 1, 0.7).toColor()
                   : const HSLColor.fromAHSL(1, 0, 0.7, 0.5).toColor(),
-              numberOfColors: counters.length)
+              steps: counters.length)
           : [];
       prepareChart();
     });
@@ -148,7 +158,9 @@ class _MainPageState extends State<MainPage> {
   void decreaseCounter(name, day) {
     if (!counters[name].containsKey(day)) return;
     userRef.update({
-      'counters.$name.$day': counters[name][day] > 1 ? counters[name][day] - 1 : FieldValue.delete()
+      'counters.$name.$day': counters[name][day] > 1
+          ? counters[name][day] - 1
+          : FieldValue.delete()
     });
   }
 
@@ -193,12 +205,14 @@ class _MainPageState extends State<MainPage> {
       data = {'counters': Map.from(counters)};
       for (final counter in (importedData['counters'] ?? {}).entries) {
         for (final entry in counter.value.entries) {
-          data['counters'].putIfAbsent(counter.key, () => {})[entry.key] = entry.value;
+          data['counters'].putIfAbsent(counter.key, () => {})[entry.key] =
+              entry.value;
         }
       }
     }
     userRef.update(data);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data imported')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Data imported')));
   }
 
   void increaseCounter(name, day) =>
@@ -211,7 +225,9 @@ class _MainPageState extends State<MainPage> {
       name = (await showTextInputDialog(
           context: context,
           textFields: const [DialogTextField()],
-          message: alreadyUsed ? '$name is already used' : 'name the new counter'))?[0];
+          message: alreadyUsed
+              ? '$name is already used'
+              : 'name the new counter'))?[0];
       if ([null, ''].contains(name)) return;
       if (!counters.containsKey(name)) break;
       alreadyUsed = true;
@@ -225,12 +241,13 @@ class _MainPageState extends State<MainPage> {
     setState(() {
       maxY = 3; // min value for Y axis maximum
       spots = {};
-      final _today = DateTime.parse(today());
+      final today_ = DateTime.parse(today());
       for (final name in counters.keys) {
         final counter = {};
         for (final entry in counters[name].entries) {
           final difference =
-              DateTime.parse(entry.key).difference(_today).inDays ~/ periods[period]!;
+              DateTime.parse(entry.key).difference(today_).inDays ~/
+                  periods[period]!;
           if (difference > -numberOfPeriods) {
             counter[difference] = (counter[difference] ?? 0) + entry.value;
           }
@@ -239,13 +256,18 @@ class _MainPageState extends State<MainPage> {
         for (var i = 1 - numberOfPeriods; i <= 0; i++) {
           spots[name]?.add(FlSpot(i.toDouble(), (counter[i] ?? 0).toDouble()));
         }
-        maxY = [maxY, ...counter.values].reduce((a, b) => a > b ? a : b).toDouble();
+        maxY = [maxY, ...counter.values]
+            .reduce((a, b) => a > b ? a : b)
+            .toDouble();
       }
     });
   }
 
-  String today({int offset = 0}) =>
-      DateTime.now().add(Duration(days: offset)).toString().substring(0, 10).replaceAll('-', '');
+  String today({int offset = 0}) => DateTime.now()
+      .add(Duration(days: offset))
+      .toString()
+      .substring(0, 10)
+      .replaceAll('-', '');
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +279,9 @@ class _MainPageState extends State<MainPage> {
                   shape: BoxShape.circle,
                   border: Border.all(
                       width: 1,
-                      style: period == value ? BorderStyle.solid : BorderStyle.none,
+                      style: period == value
+                          ? BorderStyle.solid
+                          : BorderStyle.none,
                       color: Theme.of(context).hintColor),
                 ),
                 child: IconButton(
@@ -265,7 +289,10 @@ class _MainPageState extends State<MainPage> {
                   tooltip: 'last 12 $value',
                   icon: Text(value[0].toUpperCase(),
                       style: TextStyle(
-                          color: Theme.of(context).appBarTheme.actionsIconTheme?.color,
+                          color: Theme.of(context)
+                              .appBarTheme
+                              .actionsIconTheme
+                              ?.color,
                           fontSize: 16)),
                   onPressed: () {
                     period = value;
@@ -285,7 +312,8 @@ class _MainPageState extends State<MainPage> {
                     Navigator.pop(context);
                     final json = jsonEncode({'counters': counters});
                     if (kIsWeb) {
-                      download(Stream.fromIterable(json.codeUnits), 'data.json');
+                      download(
+                          Stream.fromIterable(json.codeUnits), 'data.json');
                     } else {
                       File(exportPath).writeAsString(json);
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -310,84 +338,104 @@ class _MainPageState extends State<MainPage> {
                 ),
               ],
             ))),
-        floatingActionButton:
-            FloatingActionButton(onPressed: newCounter, child: const Icon(Icons.add)),
+        floatingActionButton: FloatingActionButton(
+            onPressed: newCounter, child: const Icon(Icons.add)),
         body: counters.isEmpty
-            ? const Center(child: Text('Add the first counter with the + button'))
-            : Flex(direction: portrait ? Axis.vertical : Axis.horizontal, children: [
-                Expanded(
-                    flex: portrait ? 45 : 60,
-                    child: Container(
-                        color: Theme.of(context).canvasColor,
+            ? const Center(
+                child: Text('Add the first counter with the + button'))
+            : Flex(
+                direction: portrait ? Axis.vertical : Axis.horizontal,
+                children: [
+                    Expanded(
+                        flex: portrait ? 45 : 60,
                         child: Container(
-                            margin: const EdgeInsets.fromLTRB(0, 20, 20, 15),
-                            child: LineChart(LineChartData(
-                              axisTitleData: FlAxisTitleData(
-                                  bottomTitle:
-                                      AxisTitle(showTitle: true, titleText: period, margin: 0)),
-                              backgroundColor: Theme.of(context).canvasColor,
-                              borderData: FlBorderData(show: false),
-                              lineTouchData: LineTouchData(
-                                  touchTooltipData: LineTouchTooltipData(
-                                      fitInsideHorizontally: true, fitInsideVertically: true)),
-                              lineBarsData: counters.keys
-                                  .mapIndexed((index, name) => LineChartBarData(
-                                      colors: [colors[index]],
-                                      isCurved: true,
-                                      preventCurveOverShooting: true,
-                                      spots: spots[name]))
-                                  .toList(),
-                              maxY: maxY,
-                              titlesData: FlTitlesData(
-                                bottomTitles: SideTitles(showTitles: true, interval: 1),
-                                rightTitles: SideTitles(showTitles: false),
-                                topTitles: SideTitles(showTitles: false),
+                            color: Theme.of(context).canvasColor,
+                            child: Container(
+                                margin:
+                                    const EdgeInsets.fromLTRB(0, 20, 20, 15),
+                                child: LineChart(LineChartData(
+                                  titlesData: FlTitlesData(
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                      ),
+                                    ),
+                                  ),
+                                  backgroundColor:
+                                      Theme.of(context).canvasColor,
+                                  borderData: FlBorderData(show: false),
+                                  lineTouchData: LineTouchData(
+                                    touchTooltipData: LineTouchTooltipData(
+                                      fitInsideHorizontally: true,
+                                      fitInsideVertically: true,
+                                    ),
+                                  ),
+                                  // ... other properties ...
+                                ))))),
+                    Expanded(
+                        flex: portrait ? 55 : 40,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.only(top: 10, bottom: 80),
+                          separatorBuilder: (_, __) => Divider(
+                              height: 5, color: Theme.of(context).canvasColor),
+                          itemCount: counters.keys.length,
+                          itemBuilder: (context, index) {
+                            final color = colors[index];
+                            final name = List.of(counters.keys)[index];
+                            return ListTile(
+                              tileColor: Theme.of(context).cardColor,
+                              title: Text(
+                                name,
+                                style: TextStyle(color: color),
                               ),
-                            ))))),
-                Expanded(
-                    flex: portrait ? 55 : 40,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.only(top: 10, bottom: 80),
-                      separatorBuilder: (_, __) =>
-                          Divider(height: 5, color: Theme.of(context).canvasColor),
-                      itemCount: counters.keys.length,
-                      itemBuilder: (context, index) {
-                        final color = colors[index];
-                        final name = List.of(counters.keys)[index];
-                        return ListTile(
-                          tileColor: Theme.of(context).cardColor,
-                          title: Text(
-                            name,
-                            style: TextStyle(color: color),
-                          ),
-                          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                            InkWell(
-                                onTap: () => increaseCounter(name, today()),
-                                onLongPress: () => increaseCounter(name, today(offset: -1)),
-                                child: Ink(
-                                    height: 40, width: 40, child: Icon(Icons.add, color: color))),
-                            InkWell(
-                                onTap: () => decreaseCounter(name, today()),
-                                onLongPress: () => decreaseCounter(name, today(offset: -1)),
-                                child: Ink(
-                                    height: 40,
-                                    width: 40,
-                                    child: Icon(Icons.remove, color: color))),
-                            InkWell(
-                                onTap: () async {
-                                  if (await showModalActionSheet(context: context, actions: [
-                                        SheetAction(key: 'remove', label: 'Remove $name')
-                                      ]) ==
-                                      'remove') {
-                                    userRef.update({'counters.$name': FieldValue.delete()});
-                                  }
-                                },
-                                child: Ink(
-                                    height: 40, width: 40, child: Icon(Icons.close, color: color))),
-                          ]),
-                        );
-                      },
-                    )),
-              ]));
+                              trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    InkWell(
+                                        onTap: () =>
+                                            increaseCounter(name, today()),
+                                        onLongPress: () => increaseCounter(
+                                            name, today(offset: -1)),
+                                        child: Ink(
+                                            height: 40,
+                                            width: 40,
+                                            child:
+                                                Icon(Icons.add, color: color))),
+                                    InkWell(
+                                        onTap: () =>
+                                            decreaseCounter(name, today()),
+                                        onLongPress: () => decreaseCounter(
+                                            name, today(offset: -1)),
+                                        child: Ink(
+                                            height: 40,
+                                            width: 40,
+                                            child: Icon(Icons.remove,
+                                                color: color))),
+                                    InkWell(
+                                        onTap: () async {
+                                          if (await showModalActionSheet(
+                                                  context: context,
+                                                  actions: [
+                                                    SheetAction(
+                                                        key: 'remove',
+                                                        label: 'Remove $name')
+                                                  ]) ==
+                                              'remove') {
+                                            userRef.update({
+                                              'counters.$name':
+                                                  FieldValue.delete()
+                                            });
+                                          }
+                                        },
+                                        child: Ink(
+                                            height: 40,
+                                            width: 40,
+                                            child: Icon(Icons.close,
+                                                color: color))),
+                                  ]),
+                            );
+                          },
+                        )),
+                  ]));
   }
 }
