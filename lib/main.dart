@@ -44,18 +44,23 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Counter App',
       theme: ThemeData(
-        brightness: Brightness.light,
         textTheme: GoogleFonts.notoSansTextTheme(),
-        primaryColor: Colors.teal,
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.grey, // or any color you like
+          brightness: Brightness.light,
+        ),
       ),
       darkTheme: ThemeData(
-        brightness: Brightness.dark,
         textTheme: GoogleFonts.notoSansTextTheme(
             ThemeData(brightness: Brightness.dark).textTheme),
-        primaryColor: Colors.teal,
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.grey, // or any color you like
+          brightness: Brightness.dark,
+        ),
       ),
+      themeMode: ThemeMode.system,
       initialRoute: '/',
       routes: {
         '/': (context) => const AuthGate(),
@@ -196,8 +201,8 @@ class MainPageState extends State<MainPage> {
       colors = counters.isNotEmpty
           ? generateEquidistantPalette(
               baseColor: Theme.of(context).brightness == Brightness.dark
-                  ? HSLColor.fromAHSL(1, 0, 1, 0.7)
-                  : HSLColor.fromAHSL(1, 0, 0.7, 0.5),
+                  ? HSLColor.fromAHSL(1, 0, 0.9, 0.6)
+                  : HSLColor.fromAHSL(1, 0, 0.9, 0.4),
               count: counters.length,
             )
           : [];
