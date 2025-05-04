@@ -4,16 +4,9 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
+const clientId =
+    '609759507371-asnbmg60kgpnlmkjhqdoqmtv3g0stra7.apps.googleusercontent.com';
+
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -43,7 +36,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '609759507371',
     projectId: 'counter-19b93',
     authDomain: 'counter-19b93.firebaseapp.com',
-    databaseURL: 'https://counter-19b93-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://counter-19b93-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'counter-19b93.appspot.com',
     measurementId: 'G-C43DZBTMQT',
   );
@@ -53,7 +47,8 @@ class DefaultFirebaseOptions {
     appId: '1:609759507371:android:cbed10a9f719632dc3d8ee',
     messagingSenderId: '609759507371',
     projectId: 'counter-19b93',
-    databaseURL: 'https://counter-19b93-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://counter-19b93-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'counter-19b93.appspot.com',
   );
 
@@ -62,10 +57,13 @@ class DefaultFirebaseOptions {
     appId: '1:609759507371:ios:f34bf77673ad89a1c3d8ee',
     messagingSenderId: '609759507371',
     projectId: 'counter-19b93',
-    databaseURL: 'https://counter-19b93-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://counter-19b93-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'counter-19b93.appspot.com',
-    androidClientId: '609759507371-ni7m6tdks4u6d03c79nt6e9e896jf69d.apps.googleusercontent.com',
-    iosClientId: '609759507371-t2cq71s0d8jiqeavip9d7io9fanigfmm.apps.googleusercontent.com',
+    androidClientId:
+        '609759507371-ni7m6tdks4u6d03c79nt6e9e896jf69d.apps.googleusercontent.com',
+    iosClientId:
+        '609759507371-t2cq71s0d8jiqeavip9d7io9fanigfmm.apps.googleusercontent.com',
     iosBundleId: 'it.ivlivs.counter',
   );
 }

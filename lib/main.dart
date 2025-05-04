@@ -7,17 +7,19 @@ import 'dart:io';
 
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:color_palette_plus/color_palette_plus.dart';
 import 'package:download/download.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'firebase_options.dart';
@@ -26,76 +28,111 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await GetStorage.init();
+
+  // Configure Firebase UI Auth
+  FirebaseUIAuth.configureProviders([
+    GoogleProvider(clientId: clientId),
+  ]);
+
   runApp(const MyApp());
 }
 
-Future<UserCredential> signInWithGoogle() async {
-  final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-  final GoogleSignInAuthentication? googleAuth =
-      await googleUser?.authentication;
-  final credential = GoogleAuthProvider.credential(
-    accessToken: googleAuth?.accessToken,
-    idToken: googleAuth?.idToken,
-  );
-  return await FirebaseAuth.instance.signInWithCredential(credential);
-}
-
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  User? user;
-  var initialised = false;
-
-  @override
-  void initState() {
-    super.initState();
-    FirebaseAuth.instance.authStateChanges().listen((User? user_) {
-      setState(() {
-        user = user_;
-        if (!initialised && user == null) signInWithGoogle();
-        initialised = true;
-      });
-    });
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData.light()
-          .copyWith(brightness: Brightness.light, primaryColor: Colors.teal),
-      darkTheme: ThemeData.dark()
-          .copyWith(brightness: Brightness.dark, primaryColor: Colors.teal),
-      themeMode: ThemeMode.system,
-      home: !initialised
-          ? Container()
-          : user == null
-              ? const SignInPage()
-              : const MainPage(),
+      title: 'Counter App',
+      theme: ThemeData(
+        brightness: Brightness.light,
+        textTheme: GoogleFonts.notoSansTextTheme(),
+        primaryColor: Colors.teal,
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        textTheme: GoogleFonts.notoSansTextTheme(
+            ThemeData(brightness: Brightness.dark).textTheme),
+        primaryColor: Colors.teal,
+        useMaterial3: true,
+      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const AuthGate(),
+        '/home': (context) => const MainPage(),
+      },
     );
   }
 }
 
-class SignInPage extends StatelessWidget {
-  const SignInPage({Key? key}) : super(key: key);
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: Center(
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      SignInButton(Buttons.Google, onPressed: signInWithGoogle),
-    ])));
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Show loading indicator while connection state is active
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        // User is not signed in
+        if (!snapshot.hasData) {
+          return const LoginScreen();
+        }
+
+        // User is signed in
+        return const MainPage();
+      },
+    );
+  }
+}
+
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SignInScreen(
+      providers: [
+        GoogleProvider(clientId: clientId),
+      ],
+      actions: [
+        AuthStateChangeAction<SignedIn>((context, state) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }),
+      ],
+      headerBuilder: (context, constraints, shrinkOffset) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text(
+            'Welcome! Please sign in.',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+        );
+      },
+      footerBuilder: (context, action) {
+        return const Padding(
+          padding: EdgeInsets.only(top: 16),
+          child: Text(
+            'By signing in, you agree to our terms and conditions.',
+            style: TextStyle(color: Colors.grey),
+          ),
+        );
+      },
+    );
   }
 }
 
 class MainPage extends StatefulWidget {
-  const MainPage({Key? key}) : super(key: key);
+  const MainPage({super.key});
 
   @override
   MainPageState createState() => MainPageState();
@@ -133,7 +170,7 @@ class MainPageState extends State<MainPage> {
         return;
       }
       final data = snapshot.data() as Map<String, dynamic>;
-      counters = SplayTreeMap.of(data['counters']);
+      counters = SplayTreeMap.of(data['counters'] ?? {});
       colors = counters.isNotEmpty
           ? ColorPalettes.analogous(
               Theme.of(context).brightness == Brightness.dark
@@ -357,22 +394,39 @@ class MainPageState extends State<MainPage> {
                                     const EdgeInsets.fromLTRB(0, 20, 20, 15),
                                 child: LineChart(LineChartData(
                                   titlesData: FlTitlesData(
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
+                                      bottomTitles: AxisTitles(
+                                        axisNameWidget: Text(period),
+                                        sideTitles: SideTitles(
+                                          getTitlesWidget: (value, meta) =>
+                                              Text(value.toString()),
+                                          interval: 1,
+                                          showTitles: true,
+                                        ),
                                       ),
-                                    ),
-                                  ),
+                                      rightTitles: AxisTitles(
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
+                                      ),
+                                      topTitles: AxisTitles(
+                                        sideTitles:
+                                            SideTitles(showTitles: false),
+                                      )),
                                   backgroundColor:
                                       Theme.of(context).canvasColor,
                                   borderData: FlBorderData(show: false),
                                   lineTouchData: LineTouchData(
-                                    touchTooltipData: LineTouchTooltipData(
-                                      fitInsideHorizontally: true,
-                                      fitInsideVertically: true,
-                                    ),
-                                  ),
-                                  // ... other properties ...
+                                      touchTooltipData: LineTouchTooltipData(
+                                          fitInsideHorizontally: true,
+                                          fitInsideVertically: true)),
+                                  lineBarsData: counters.keys
+                                      .mapIndexed((index, name) =>
+                                          LineChartBarData(
+                                              color: colors[index],
+                                              isCurved: true,
+                                              preventCurveOverShooting: true,
+                                              spots: spots[name]!))
+                                      .toList(),
+                                  maxY: maxY,
                                 ))))),
                     Expanded(
                         flex: portrait ? 55 : 40,
