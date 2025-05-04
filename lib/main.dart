@@ -8,7 +8,6 @@ import 'dart:io';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:color_palette_plus/color_palette_plus.dart';
 import 'package:download/download.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
@@ -138,6 +137,29 @@ class MainPage extends StatefulWidget {
   MainPageState createState() => MainPageState();
 }
 
+/// Generates an equidistant color palette in HSL space
+/// starting from a base HSL color
+List<Color> generateEquidistantPalette({
+  required HSLColor baseColor,
+  required int count,
+}) {
+  final List<Color> colors = [];
+  final double step = 360.0 / count;
+
+  for (int i = 0; i < count; i++) {
+    // Calculate the new hue with even spacing around the color wheel
+    final double newHue = (baseColor.hue + (i * step)) % 360;
+
+    // Create a new HSLColor with the new hue
+    final HSLColor hslColor = baseColor.withHue(newHue);
+
+    // Add the converted Color to our list
+    colors.add(hslColor.toColor());
+  }
+
+  return colors;
+}
+
 class MainPageState extends State<MainPage> {
   final periods = {
     'days': 1,
@@ -148,7 +170,7 @@ class MainPageState extends State<MainPage> {
   };
   final numberOfPeriods = 12;
 
-  var colors = [];
+  List<Color> colors = [];
   var counters = SplayTreeMap();
   var exportPath = '';
   double maxY = 0;
@@ -172,11 +194,12 @@ class MainPageState extends State<MainPage> {
       final data = snapshot.data() as Map<String, dynamic>;
       counters = SplayTreeMap.of(data['counters'] ?? {});
       colors = counters.isNotEmpty
-          ? ColorPalettes.analogous(
-              Theme.of(context).brightness == Brightness.dark
-                  ? const HSLColor.fromAHSL(1, 0, 1, 0.7).toColor()
-                  : const HSLColor.fromAHSL(1, 0, 0.7, 0.5).toColor(),
-              steps: counters.length)
+          ? generateEquidistantPalette(
+              baseColor: Theme.of(context).brightness == Brightness.dark
+                  ? HSLColor.fromAHSL(1, 0, 1, 0.7)
+                  : HSLColor.fromAHSL(1, 0, 0.7, 0.5),
+              count: counters.length,
+            )
           : [];
       prepareChart();
     });
