@@ -175,7 +175,7 @@ class MainPageState extends State<MainPage> {
   };
   final numberOfPeriods = 12;
 
-  List<Color> colors = [];
+  Map<Brightness, List<Color>> colors = {};
   var counters = SplayTreeMap();
   var exportPath = '';
   double maxY = 0;
@@ -198,14 +198,14 @@ class MainPageState extends State<MainPage> {
       }
       final data = snapshot.data() as Map<String, dynamic>;
       counters = SplayTreeMap.of(data['counters'] ?? {});
-      colors = counters.isNotEmpty
-          ? generateEquidistantPalette(
-              baseColor: Theme.of(context).brightness == Brightness.dark
-                  ? HSLColor.fromAHSL(1, 0, 0.9, 0.6)
-                  : HSLColor.fromAHSL(1, 0, 0.9, 0.4),
-              count: counters.length,
-            )
-          : [];
+      colors = {
+        Brightness.light: generateEquidistantPalette(
+            baseColor: HSLColor.fromAHSL(1, 0, 0.9, 0.4),
+            count: counters.length),
+        Brightness.dark: generateEquidistantPalette(
+            baseColor: HSLColor.fromAHSL(1, 0, 0.9, 0.6),
+            count: counters.length),
+      };
       prepareChart();
     });
 
@@ -449,7 +449,8 @@ class MainPageState extends State<MainPage> {
                                   lineBarsData: counters.keys
                                       .mapIndexed((index, name) =>
                                           LineChartBarData(
-                                              color: colors[index],
+                                              color: colors[Theme.of(context)
+                                                  .brightness]![index],
                                               isCurved: true,
                                               preventCurveOverShooting: true,
                                               spots: spots[name]!))
@@ -464,7 +465,8 @@ class MainPageState extends State<MainPage> {
                               height: 5, color: Theme.of(context).canvasColor),
                           itemCount: counters.keys.length,
                           itemBuilder: (context, index) {
-                            final color = colors[index];
+                            final color =
+                                colors[Theme.of(context).brightness]![index];
                             final name = List.of(counters.keys)[index];
                             return ListTile(
                               tileColor: Theme.of(context).cardColor,
