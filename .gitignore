@@ -6,7 +6,7 @@
 .DS_Store
 .atom/
 .buildlog/
-.firebase/*
+.firebase/
 .gradle/
 .history
 .svn/
