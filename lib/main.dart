@@ -44,22 +44,22 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Counter App',
       theme: ThemeData(
-        textTheme: GoogleFonts.notoSansTextTheme(),
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.grey, // or any color you like
-          brightness: Brightness.light,
-        ),
-      ),
+          textTheme: GoogleFonts.notoSansTextTheme(),
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.grey, // or any color you like
+            brightness: Brightness.light,
+          ),
+          cardColor: Colors.white70),
       darkTheme: ThemeData(
-        textTheme: GoogleFonts.notoSansTextTheme(
-            ThemeData(brightness: Brightness.dark).textTheme),
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.grey, // or any color you like
-          brightness: Brightness.dark,
-        ),
-      ),
+          textTheme: GoogleFonts.notoSansTextTheme(
+              ThemeData(brightness: Brightness.dark).textTheme),
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.grey, // or any color you like
+            brightness: Brightness.dark,
+          ),
+          cardColor: Colors.black54),
       themeMode: ThemeMode.system,
       initialRoute: '/',
       routes: {
@@ -468,58 +468,61 @@ class MainPageState extends State<MainPage> {
                             final color =
                                 colors[Theme.of(context).brightness]![index];
                             final name = List.of(counters.keys)[index];
-                            return ListTile(
-                              tileColor: Theme.of(context).cardColor,
-                              title: Text(
-                                name,
-                                style: TextStyle(color: color),
-                              ),
-                              trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    InkWell(
-                                        onTap: () =>
-                                            increaseCounter(name, today()),
-                                        onLongPress: () => increaseCounter(
-                                            name, today(offset: -1)),
-                                        child: Ink(
-                                            height: 40,
-                                            width: 40,
-                                            child:
-                                                Icon(Icons.add, color: color))),
-                                    InkWell(
-                                        onTap: () =>
-                                            decreaseCounter(name, today()),
-                                        onLongPress: () => decreaseCounter(
-                                            name, today(offset: -1)),
-                                        child: Ink(
-                                            height: 40,
-                                            width: 40,
-                                            child: Icon(Icons.remove,
-                                                color: color))),
-                                    InkWell(
-                                        onTap: () async {
-                                          if (await showModalActionSheet(
-                                                  context: context,
-                                                  actions: [
-                                                    SheetAction(
-                                                        key: 'remove',
-                                                        label: 'Remove $name')
-                                                  ]) ==
-                                              'remove') {
-                                            userRef.update({
-                                              'counters.$name':
-                                                  FieldValue.delete()
-                                            });
-                                          }
-                                        },
-                                        child: Ink(
-                                            height: 40,
-                                            width: 40,
-                                            child: Icon(Icons.close,
-                                                color: color))),
-                                  ]),
-                            );
+                            return Card(
+                                elevation: 4,
+                                child: ListTile(
+                                  tileColor: Theme.of(context).cardColor,
+                                  title: Text(
+                                    name,
+                                    style: TextStyle(color: color),
+                                  ),
+                                  trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        InkWell(
+                                            onTap: () =>
+                                                increaseCounter(name, today()),
+                                            onLongPress: () => increaseCounter(
+                                                name, today(offset: -1)),
+                                            child: Ink(
+                                                height: 40,
+                                                width: 40,
+                                                child: Icon(Icons.add,
+                                                    color: color))),
+                                        InkWell(
+                                            onTap: () =>
+                                                decreaseCounter(name, today()),
+                                            onLongPress: () => decreaseCounter(
+                                                name, today(offset: -1)),
+                                            child: Ink(
+                                                height: 40,
+                                                width: 40,
+                                                child: Icon(Icons.remove,
+                                                    color: color))),
+                                        InkWell(
+                                            onTap: () async {
+                                              if (await showModalActionSheet(
+                                                      context: context,
+                                                      actions: [
+                                                        SheetAction(
+                                                            key: 'remove',
+                                                            label:
+                                                                'Remove $name')
+                                                      ]) ==
+                                                  'remove') {
+                                                userRef.update({
+                                                  'counters.$name':
+                                                      FieldValue.delete()
+                                                });
+                                              }
+                                            },
+                                            child: Ink(
+                                                height: 40,
+                                                width: 40,
+                                                child: Icon(Icons.close,
+                                                    color: color))),
+                                      ]),
+                                ));
                           },
                         )),
                   ]));
